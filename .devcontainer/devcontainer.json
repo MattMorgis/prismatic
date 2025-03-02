@@ -1,0 +1,67 @@
+{
+  "name": "Debian",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "DEBIAN_RELEASE": "bookworm"
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:latest": {
+      "version": "latest"
+    },
+    "ghcr.io/eitsupi/devcontainer-features/jq-likes:latest": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/node:latest": {
+      "version": "latest"
+    },
+    "ghcr.io/jsburckhardt/devcontainer-features/uv:latest": {
+      "version": "latest"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "editorconfig.editorconfig",
+        "ms-python.python",
+        "ms-python.debugpy",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "ms-azuretools.vscode-docker",
+        "tamasfe.even-better-toml",
+        "mechatroner.rainbow-csv",
+        "richie5um2.vscode-sort-json",
+        "redhat.vscode-xml",
+        "redhat.vscode-yaml",
+        "github.vscode-github-actions",
+        "mhutchie.git-graph",
+        "eamodio.gitlens",
+        "bierner.markdown-mermaid"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll.ruff": "always",
+          "source.organizeImports.ruff": "always"
+        },
+        "ruff.lint.enable": true,
+        "python.testing.pytestEnabled": true,
+        "python.testing.unittestEnabled": false,
+        "python.testing.nosetestsEnabled": false,
+        "python.testing.pytestArgs": [
+          "tests"
+        ],
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "postCreateCommand": "./.devcontainer/post-create.sh",
+  "remoteUser": "vscode",
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+  "remoteEnv": {
+    "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin"
+  }
+}
