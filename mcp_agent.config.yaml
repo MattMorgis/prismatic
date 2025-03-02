@@ -1,0 +1,29 @@
+execution_engine: asyncio
+logger:
+  type: console
+  level: debug
+
+mcp:
+  servers:
+    # GitHub MCP server
+    github:
+      command: 'npx'
+      args: ['-y', '@modelcontextprotocol/server-github']
+
+    # Git MCP server (optional - if needed for deeper repo analysis)
+    git:
+      command: 'npx'
+      args: ['-y', '@modelcontextprotocol/server-git']
+
+    # Fetch server for accessing web resources
+    fetch:
+      command: 'uvx'
+      args: ['mcp-server-fetch']
+
+    # File system server for accessing local files
+    file-system:
+      command: 'uvx'
+      args: ['mcp-server-filesystem']
+
+openai:
+  default_model: gpt-4o
