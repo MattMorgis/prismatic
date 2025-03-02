@@ -1,3 +1,2 @@
-mcp-agent>=0.11.0
-uvx
-mcp-server-filesystem
+mcp-agent
+anthropic

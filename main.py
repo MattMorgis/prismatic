@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 
 from mcp_agent.agents.agent import Agent
 from mcp_agent.app import MCPApp
-from mcp_agent.workflows.llm.augmented_llm_openai import OpenAIAugmentedLLM
+from mcp_agent.workflows.llm.augmented_llm_anthropic import AnthropicAugmentedLLM
 from mcp_agent.workflows.parallel.parallel_llm import ParallelLLM
 
 # Import prompts from prompts.py
@@ -50,7 +50,7 @@ async def run_multi_code_review(pr_url):
 
             async with pr_fetcher:
                 # Attach LLM to the PR fetcher agent
-                pr_llm = await pr_fetcher.attach_llm(OpenAIAugmentedLLM)
+                pr_llm = await pr_fetcher.attach_llm(AnthropicAugmentedLLM)
 
                 # Use the GitHub MCP server via the LLM to fetch PR data
                 pr_fetch_prompt = get_pr_fetch_prompt(
@@ -100,12 +100,13 @@ async def run_multi_code_review(pr_url):
                         clarity_reviewer,
                         test_reviewer,
                     ],
-                    llm_factory=OpenAIAugmentedLLM,
+                    llm_factory=AnthropicAugmentedLLM,
                 )
 
                 # Execute parallel review
                 review_result = await parallel.generate_str(
                     message=f"Review the following GitHub pull request data:\n\n{pr_data}",
+                    # The PR data already contains the PR_CHECKOUT_PATH information that all agents can use
                 )
 
                 logger.info("Multi-code review completed successfully!")
