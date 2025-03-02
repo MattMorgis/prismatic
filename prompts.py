@@ -9,8 +9,11 @@ Given a GitHub PR URL, you will:
 1. Extract all files changed in the PR
 2. Get the diff for each file
 3. Gather PR metadata (title, description, comments)
-4. Use the file-system tool to explore related files in the codebase that would provide important context
-5. Format this information in a structured way for code review
+4. Check out the repository and the PR branch to a temp directory at "/tmp/pr_checkout"
+5. Use the file-system tool to explore the checked-out code and provide important context
+6. Format this information in a structured way for code review
+
+Important: You MUST check out the repository and branch to "/tmp/pr_checkout" so that other review agents can access the complete codebase. Include the checkout path in your response like this: "PR_CHECKOUT_PATH: /tmp/pr_checkout".
 
 Your output should be comprehensive and include all necessary code context for a thorough review.
 Use the file-system tool to navigate directories, read files, and understand the broader context of the changes.
@@ -19,6 +22,8 @@ When you see changes to a file, you should use the file-system tool to:
 - Look for related files that might be impacted by the changes
 - Understand the project structure and dependencies
 - Identify potential issues that might arise from these changes
+
+The temp directory checkout gives other agents a consistent place to access the full codebase for their analysis.
 """
 
 # Security reviewer prompt
@@ -30,9 +35,9 @@ You are a security expert focused on code security. Analyze the provided code ch
 4. Secure coding practices
 5. Potential secret/credential exposure
 
-Use the file-system tool to explore the codebase more thoroughly if needed:
-- Examine security-related files and configurations
-- Look at authentication and authorization mechanisms
+The PR data will include a checkout path (e.g., "PR_CHECKOUT_PATH: /tmp/pr_checkout"). Use the file-system tool to explore this checkout path thoroughly:
+- Examine security-related files and configurations in the checkout path
+- Look at authentication and authorization mechanisms throughout the code
 - Check for patterns across the codebase that might reveal systemic issues
 
 For each issue found, provide:
@@ -53,8 +58,8 @@ You are a performance optimization expert. Analyze the provided code changes for
 4. Database query optimization opportunities
 5. Caching opportunities
 
-Use the file-system tool to explore the codebase more thoroughly if needed:
-- Look at similar performance-critical parts of the codebase
+The PR data will include a checkout path (e.g., "PR_CHECKOUT_PATH: /tmp/pr_checkout"). Use the file-system tool to explore this checkout path thoroughly:
+- Look at similar performance-critical parts of the codebase in the checkout directory
 - Examine configuration files that might affect performance
 - Check for existing benchmarks or performance tests
 - Understand how the changed code interacts with other components
@@ -77,8 +82,8 @@ You are a code clarity and maintainability expert. Analyze the provided code cha
 4. Code duplication
 5. Adherence to project style guidelines
 
-Use the file-system tool to explore the codebase more thoroughly if needed:
-- Check existing style guide files or linter configurations
+The PR data will include a checkout path (e.g., "PR_CHECKOUT_PATH: /tmp/pr_checkout"). Use the file-system tool to explore this checkout path thoroughly:
+- Check existing style guide files or linter configurations in the checkout directory
 - Look at similar files to understand project conventions
 - Examine documentation standards across the project
 - Identify patterns and practices established in the codebase
@@ -100,8 +105,8 @@ You are a testing and quality assurance expert. Analyze the provided code change
 4. Potential for test flakiness
 5. Mocking strategies and their effectiveness
 
-Use the file-system tool to explore the codebase more thoroughly if needed:
-- Look for test files related to the changed code
+The PR data will include a checkout path (e.g., "PR_CHECKOUT_PATH: /tmp/pr_checkout"). Use the file-system tool to explore this checkout path thoroughly:
+- Look for test files related to the changed code in the checkout directory
 - Examine test frameworks and utilities used in the project
 - Check for CI/CD configurations and test requirements
 - Understand the overall test strategy and patterns
@@ -124,8 +129,8 @@ You will receive reviews from:
 - Clarity Reviewer: Focused on code readability and maintainability
 - Test Reviewer: Focused on test coverage and quality
 
-Use the file-system tool to explore the codebase if needed to verify or further investigate claims made by other reviewers.
-You can access the local repository to check code context, examine related files, or verify patterns mentioned in the individual reviews.
+The PR data will include a checkout path (e.g., "PR_CHECKOUT_PATH: /tmp/pr_checkout"). Use the file-system tool to explore this checkout path to verify or further investigate claims made by other reviewers.
+You can access the checked-out repository to check code context, examine related files, or verify patterns mentioned in the individual reviews.
 
 Your job is to:
 1. Compile all feedback into a single comprehensive review
@@ -155,8 +160,13 @@ def get_pr_fetch_prompt(owner, repo_name, pr_number):
     3. The diff/patch for each file
     4. Any comments on the PR
 
-    Then, use the file-system tool to explore the local repository and gather more context:
-    1. For each changed file, examine the local copy of the file
+    Then, check out the repository and PR branch to a temp directory:
+    1. Use git commands to clone the repository to "/tmp/pr_checkout"
+    2. Checkout the specific PR branch in that directory
+    3. IMPORTANT: Include "PR_CHECKOUT_PATH: /tmp/pr_checkout" in your response so other agents know where to look
+
+    After checking out the code, use the file-system tool to explore the checked-out repository and gather more context:
+    1. For each changed file, examine the file in the checked-out repository
     2. Look for related files in the same directories
     3. Check for configuration files, tests, or documentation related to the changes
     4. Explore the project structure to understand dependencies and potentially affected areas
@@ -167,4 +177,5 @@ def get_pr_fetch_prompt(owner, repo_name, pr_number):
     - Important related files not included in the PR
     - Project structure context that helps understand the changes
     - Any potential issues or dependencies identified during exploration
+    - The checkout path information for other agents
     """

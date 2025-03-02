@@ -9,11 +9,13 @@ mcp:
     github:
       command: 'npx'
       args: ['-y', '@modelcontextprotocol/server-github']
+      env:
+        GITHUB_PERSONAL_ACCESS_TOKEN: "${{secrets.github.token}}"
 
     # Git MCP server (optional - if needed for deeper repo analysis)
     git:
-      command: 'npx'
-      args: ['-y', '@modelcontextprotocol/server-git']
+      command: 'uvx'
+      args: ['mcp-server-git', '--repository', "/tmp/pr_checkout"]
 
     # Fetch server for accessing web resources
     fetch:
@@ -22,8 +24,9 @@ mcp:
 
     # File system server for accessing local files
     file-system:
-      command: 'uvx'
-      args: ['mcp-server-filesystem']
-
-openai:
-  default_model: gpt-4o
+      command: 'npx'
+      args: [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/tmp/pr_checkout"
+      ]
