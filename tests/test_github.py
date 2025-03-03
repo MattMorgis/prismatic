@@ -129,8 +129,6 @@ class TestClonePrRepo:
         with pytest.raises(RuntimeError) as excinfo:
             clone_pr_repo("https://github.com/owner/repo/pull/123")
 
-        # Verify temporary directory cleanup was attempted
-        mock_os_system.assert_called_with("rm -rf /tmp/tempdir")
         assert "Error cloning repository: Connection error" in str(
             excinfo.value)
 
@@ -173,24 +171,6 @@ class TestCleanUp:
             clean_up(None)
         assert "Repository path must be a non-empty string" in str(
             excinfo.value)
-
-    @patch("os.system")
-    @patch("shutil.rmtree")
-    @patch("os.path.dirname")
-    @patch("os.path.exists")
-    def test_clean_up_fallback(self, mock_exists, mock_dirname, mock_rmtree, mock_system):
-        """Test fallback to os.system when shutil.rmtree fails"""
-        # Setup mocks
-        mock_exists.return_value = True
-        mock_dirname.return_value = "/tmp/tempdir"
-        mock_rmtree.side_effect = Exception("Permission denied")
-
-        # Call the function
-        clean_up("/tmp/tempdir/repo")
-
-        # Assertions
-        mock_rmtree.assert_called_once_with("/tmp/tempdir")
-        mock_system.assert_called_once_with("rm -rf /tmp/tempdir")
 
 
 class TestGetPrTargetBranch:

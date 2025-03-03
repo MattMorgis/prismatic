@@ -2,7 +2,7 @@ from mcp_agent.app import MCPApp
 from mcp_agent.config import get_settings
 
 # Import prompts from prompts.py
-from src.github import clean_up, clone_pr_repo
+from src.github import clean_up, clone_pr_repo, get_pr_target_branch
 
 # Initialize the MCPApp
 app = MCPApp(name="multi_code_reviewer")
@@ -22,7 +22,8 @@ async def run_multi_code_review(pr_url):
         try:
             github_token = get_github_token()
             print("Repo path:")
-            repo_path, branch_name = clone_pr_repo(pr_url, github_token)
+            repo_path = clone_pr_repo(pr_url, github_token)
+            branch_name = get_pr_target_branch(pr_url, github_token)
             print(f"Cloned repository at {repo_path} on branch {branch_name}")
             # # Create specialized reviewer agents
             # security_reviewer = Agent(

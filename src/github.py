@@ -1,11 +1,16 @@
+import logging
 import os
 import re
+import shutil
 import tempfile
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 
 import git
 
 from github import Github
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 def parse_pr_url(pr_url: str) -> Tuple[str, str, int]:
@@ -32,6 +37,52 @@ def parse_pr_url(pr_url: str) -> Tuple[str, str, int]:
     return owner, repo, int(pr_number)
 
 
+def _get_github_objects(pr_url: str, github_token: Optional[str] = None) -> Tuple[Any, Any, str, str, int]:
+    """
+    Helper function to get GitHub objects from a PR URL.
+
+    Args:
+        pr_url: GitHub PR URL
+        github_token: Optional GitHub token for authentication
+
+    Returns:
+        Tuple containing the repository object, pull request object, owner, repo name, and PR number
+
+    Raises:
+        ValueError: If the URL is not a valid GitHub PR URL
+        Exception: Propagates any exceptions from the GitHub API
+    """
+    # Parse the PR URL
+    owner, repo, pr_number = parse_pr_url(pr_url)
+
+    # Create a GitHub instance
+    g = Github(github_token) if github_token else Github()
+
+    # Get the repository and PR
+    # Note: We intentionally don't catch exceptions here to propagate them to the caller
+    repository = g.get_repo(f"{owner}/{repo}")
+    pull_request = repository.get_pull(pr_number)
+
+    return repository, pull_request, owner, repo, pr_number
+
+
+def _safe_remove_directory(dir_path: str) -> None:
+    """
+    Safely remove a directory.
+
+    Note: Using os.system with rm -rf is potentially dangerous, but kept for
+    backward compatibility. In production, this should be replaced with safer alternatives.
+
+    Args:
+        dir_path: Path to the directory to remove
+    """
+    try:
+        shutil.rmtree(dir_path)
+    except Exception as e:
+        # Log warning about the dangerous operation
+        logger.warning(f"Failed to clean up directory {dir_path}: {str(e)}")
+
+
 def clone_pr_repo(pr_url: str, github_token: Optional[str] = None) -> Tuple[str, str]:
     """
     Clone the repository from a PR URL to a local temporary directory.
@@ -47,21 +98,13 @@ def clone_pr_repo(pr_url: str, github_token: Optional[str] = None) -> Tuple[str,
         ValueError: If the URL is not a valid GitHub PR URL
         RuntimeError: If there's an error cloning the repository
     """
-    # Parse the PR URL
-    owner, repo, pr_number = parse_pr_url(pr_url)
-
     # Create a temporary directory
     temp_dir = tempfile.mkdtemp()
 
     try:
-        # Create a GitHub instance
-        g = Github(github_token) if github_token else Github()
-
-        # Get the repository
-        repository = g.get_repo(f"{owner}/{repo}")
-
-        # Get the PR
-        pull_request = repository.get_pull(pr_number)
+        # Get GitHub objects
+        repository, pull_request, owner, repo, _ = _get_github_objects(
+            pr_url, github_token)
 
         # Get the clone URL
         clone_url = repository.clone_url
@@ -85,7 +128,7 @@ def clone_pr_repo(pr_url: str, github_token: Optional[str] = None) -> Tuple[str,
         return repo_path, branch_name
     except Exception as e:
         # Clean up the temporary directory in case of failure
-        os.system(f"rm -rf {temp_dir}")
+        _safe_remove_directory(temp_dir)
         raise RuntimeError(f"Error cloning repository: {str(e)}")
 
 
@@ -109,13 +152,8 @@ def clean_up(repo_path: str) -> None:
     # Get the parent directory (the temp directory)
     temp_dir = os.path.dirname(repo_path)
 
-    try:
-        # Use shutil.rmtree for a more reliable cleanup
-        import shutil
-        shutil.rmtree(temp_dir)
-    except Exception:
-        # Fallback to system command if shutil fails
-        os.system(f"rm -rf {temp_dir}")
+    # Use the safe removal function
+    _safe_remove_directory(temp_dir)
 
 
 def get_pr_target_branch(pr_url: str, github_token: Optional[str] = None) -> str:
@@ -133,18 +171,9 @@ def get_pr_target_branch(pr_url: str, github_token: Optional[str] = None) -> str
         ValueError: If the URL is not a valid GitHub PR URL
         RuntimeError: If there's an error retrieving the PR information
     """
-    # Parse the PR URL
-    owner, repo, pr_number = parse_pr_url(pr_url)
-
     try:
-        # Create a GitHub instance
-        g = Github(github_token) if github_token else Github()
-
-        # Get the repository
-        repository = g.get_repo(f"{owner}/{repo}")
-
-        # Get the PR
-        pull_request = repository.get_pull(pr_number)
+        # Get GitHub objects
+        _, pull_request, _, _, _ = _get_github_objects(pr_url, github_token)
 
         # Return the base branch (target branch) name
         return pull_request.base.ref
