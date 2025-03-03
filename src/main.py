@@ -1,6 +1,3 @@
-import argparse
-import asyncio
-import time
 from urllib.parse import urlparse
 
 from mcp_agent.agents.agent import Agent
@@ -9,7 +6,7 @@ from mcp_agent.workflows.llm.augmented_llm_anthropic import AnthropicAugmentedLL
 from mcp_agent.workflows.parallel.parallel_llm import ParallelLLM
 
 # Import prompts from prompts.py
-from prompts import (
+from src.prompts import (
     CLARITY_REVIEWER_INSTRUCTION,
     PERFORMANCE_REVIEWER_INSTRUCTION,
     PR_FETCHER_INSTRUCTION,
@@ -116,21 +113,3 @@ async def run_multi_code_review(pr_url):
         except Exception as e:
             logger.error(f"Error during multi-code review: {str(e)}")
             raise
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Multi-perspective code reviewer for GitHub PRs"
-    )
-    parser.add_argument("pr_url", help="GitHub Pull Request URL to review")
-    args = parser.parse_args()
-
-    start_time = time.time()
-    review_result = asyncio.run(run_multi_code_review(args.pr_url))
-    end_time = time.time()
-
-    print("\n" + "=" * 80)
-    print("MULTI-CODE REVIEWER REPORT")
-    print("=" * 80 + "\n")
-    print(review_result)
-    print(f"\nReview completed in {end_time - start_time:.2f} seconds")

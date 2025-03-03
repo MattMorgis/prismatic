@@ -49,6 +49,9 @@
         "python.testing.pytestEnabled": true,
         "python.testing.unittestEnabled": false,
         "python.testing.nosetestsEnabled": false,
+        "python.analysis.extraPaths": [
+          "./src"
+        ],
         "python.testing.pytestArgs": [
           "tests"
         ],
