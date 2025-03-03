@@ -4,7 +4,9 @@ Entry point script for the multi-code-reviewer tool.
 This script simply imports and runs the main functionality from the src package.
 """
 
-from src.main import asyncio, run_multi_code_review
+import asyncio
+
+from src.main import run_multi_code_review
 
 if __name__ == "__main__":
     import argparse
