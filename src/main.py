@@ -1,36 +1,15 @@
-from urllib.parse import urlparse
-
 from mcp_agent.app import MCPApp
 from mcp_agent.config import get_settings
 
 # Import prompts from prompts.py
+from src.github import clean_up, clone_pr_repo
 
 # Initialize the MCPApp
 app = MCPApp(name="multi_code_reviewer")
 
 
-async def get_github_token():
+def get_github_token():
     return get_settings().mcp.servers["github"].env["GITHUB_PERSONAL_ACCESS_TOKEN"]
-
-
-async def clone_repo_and_apply_patch(pr_url):
-    # Get GitHub token and validate it exists
-    github_token = await get_github_token()
-    if not github_token:
-        raise ValueError(
-            "GitHub token not found. Please ensure GITHUB_PERSONAL_ACCESS_TOKEN is set in configuration.")
-    # Parse the PR URL to extract owner, repo, and PR number
-    parsed_url = urlparse(pr_url)
-    path_parts = parsed_url.path.strip("/").split("/")
-
-    if len(path_parts) < 4 or path_parts[2] != "pull":
-        raise ValueError(f"Invalid GitHub PR URL: {pr_url}")
-
-    owner = path_parts[0]
-    repo_name = path_parts[1]
-    pr_number = int(path_parts[3])
-
-    return owner, repo_name, pr_number
 
 
 async def run_multi_code_review(pr_url):
@@ -39,8 +18,12 @@ async def run_multi_code_review(pr_url):
         logger = multi_code_reviewer.logger
         logger.info(f"Starting multi-code review for PR: {pr_url}")
 
+        repo_path = None
         try:
-            clone_repo_and_apply_patch(pr_url)
+            github_token = get_github_token()
+            print("Repo path:")
+            repo_path, branch_name = clone_pr_repo(pr_url, github_token)
+            print(f"Cloned repository at {repo_path} on branch {branch_name}")
             # # Create specialized reviewer agents
             # security_reviewer = Agent(
             #     name="security_reviewer",
@@ -95,5 +78,10 @@ async def run_multi_code_review(pr_url):
             # return review_result
 
         except Exception as e:
-            logger.error(f"Error during multi-code review: {str(e)}")
+            logger.error(f"Error during code review: {str(e)}")
             raise
+        finally:
+            # Clean up the cloned repository if it exists
+            if repo_path:
+                logger.info(f"Cleaning up repository at {repo_path}")
+                clean_up(repo_path)
