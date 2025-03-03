@@ -21,7 +21,7 @@ mcp:
       args: ['mcp-server-fetch']
 
     # File system server for accessing local files
-    file-system:
+    file:
       command: 'npx'
       args: [
         "-y",

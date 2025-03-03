@@ -57,38 +57,39 @@ async def run_multi_code_review(pr_url):
                     owner, repo_name, pr_number)
 
                 pr_data = await pr_llm.generate_str(pr_fetch_prompt)
-                logger.info("Successfully fetched PR data")
+                logger.info(
+                    f"Successfully fetched PR data for PR #{pr_number} in {owner}/{repo_name}")
 
                 # Create specialized reviewer agents
                 security_reviewer = Agent(
                     name="security_reviewer",
                     instruction=SECURITY_REVIEWER_INSTRUCTION,
-                    server_names=["github", "file-system"],
+                    server_names=["github", "file"],
                 )
 
                 performance_reviewer = Agent(
                     name="performance_reviewer",
                     instruction=PERFORMANCE_REVIEWER_INSTRUCTION,
-                    server_names=["github", "file-system"],
+                    server_names=["github", "file"],
                 )
 
                 clarity_reviewer = Agent(
                     name="clarity_reviewer",
                     instruction=CLARITY_REVIEWER_INSTRUCTION,
-                    server_names=["github", "file-system"],
+                    server_names=["github", "file"],
                 )
 
                 test_reviewer = Agent(
                     name="test_reviewer",
                     instruction=TEST_REVIEWER_INSTRUCTION,
-                    server_names=["github", "file-system"],
+                    server_names=["github", "file"],
                 )
 
                 # Review aggregator agent
                 review_aggregator = Agent(
                     name="review_aggregator",
                     instruction=REVIEW_AGGREGATOR_INSTRUCTION,
-                    server_names=["github", "file-system"],
+                    server_names=["github", "file"],
                 )
 
                 # Create parallel workflow
