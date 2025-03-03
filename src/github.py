@@ -116,3 +116,37 @@ def clean_up(repo_path: str) -> None:
     except Exception:
         # Fallback to system command if shutil fails
         os.system(f"rm -rf {temp_dir}")
+
+
+def get_pr_target_branch(pr_url: str, github_token: Optional[str] = None) -> str:
+    """
+    Get the target branch (base branch) of a GitHub pull request.
+
+    Args:
+        pr_url: GitHub PR URL in the format https://github.com/owner/repo/pull/number
+        github_token: Optional GitHub token for authentication (for private repos)
+
+    Returns:
+        str: The name of the target branch (base branch) of the pull request
+
+    Raises:
+        ValueError: If the URL is not a valid GitHub PR URL
+        RuntimeError: If there's an error retrieving the PR information
+    """
+    # Parse the PR URL
+    owner, repo, pr_number = parse_pr_url(pr_url)
+
+    try:
+        # Create a GitHub instance
+        g = Github(github_token) if github_token else Github()
+
+        # Get the repository
+        repository = g.get_repo(f"{owner}/{repo}")
+
+        # Get the PR
+        pull_request = repository.get_pull(pr_number)
+
+        # Return the base branch (target branch) name
+        return pull_request.base.ref
+    except Exception as e:
+        raise RuntimeError(f"Error retrieving PR information: {str(e)}")

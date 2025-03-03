@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.github import clean_up, clone_pr_repo, parse_pr_url
+from src.github import clean_up, clone_pr_repo, get_pr_target_branch, parse_pr_url
 
 
 class TestParseGithubUrl:
@@ -191,3 +191,67 @@ class TestCleanUp:
         # Assertions
         mock_rmtree.assert_called_once_with("/tmp/tempdir")
         mock_system.assert_called_once_with("rm -rf /tmp/tempdir")
+
+
+class TestGetPrTargetBranch:
+    @patch("src.github.Github")
+    def test_get_pr_target_branch_success(self, mock_github):
+        """Test successful retrieval of PR target branch"""
+        # Setup mocks
+        mock_pr = MagicMock()
+        mock_pr.base.ref = "main"
+
+        mock_repo = MagicMock()
+        mock_repo.get_pull.return_value = mock_pr
+
+        mock_github_instance = mock_github.return_value
+        mock_github_instance.get_repo.return_value = mock_repo
+
+        # Call the function
+        target_branch = get_pr_target_branch(
+            "https://github.com/owner/repo/pull/123")
+
+        # Assertions
+        mock_github_instance.get_repo.assert_called_with("owner/repo")
+        mock_repo.get_pull.assert_called_with(123)
+        assert target_branch == "main"
+
+    @patch("src.github.Github")
+    def test_get_pr_target_branch_with_token(self, mock_github):
+        """Test PR target branch retrieval with GitHub token"""
+        # Setup mocks
+        mock_pr = MagicMock()
+        mock_pr.base.ref = "development"
+
+        mock_repo = MagicMock()
+        mock_repo.get_pull.return_value = mock_pr
+
+        mock_github_instance = mock_github.return_value
+        mock_github_instance.get_repo.return_value = mock_repo
+
+        # Call the function with a token
+        target_branch = get_pr_target_branch(
+            "https://github.com/owner/repo/pull/123",
+            github_token="token123"
+        )
+
+        # Assertions
+        mock_github.assert_called_with("token123")
+        assert target_branch == "development"
+
+    @patch("src.github.Github")
+    def test_get_pr_target_branch_exception(self, mock_github):
+        """Test error handling during PR target branch retrieval"""
+        # Mock GitHub objects to raise exception
+        mock_github_instance = mock_github.return_value
+        mock_github_instance.get_repo.side_effect = Exception(
+            "API rate limit exceeded"
+        )
+
+        # Call the function and assert exception
+        with pytest.raises(RuntimeError) as excinfo:
+            get_pr_target_branch("https://github.com/owner/repo/pull/123")
+
+        assert "Error retrieving PR information: API rate limit exceeded" in str(
+            excinfo.value
+        )
