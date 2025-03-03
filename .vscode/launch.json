@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: multi-code-reviewer",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/multi_code_reviewer.py",
+      "args": [
+        "https://github.com/lastmile-ai/mcp-agent/pull/29"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ]
+}
