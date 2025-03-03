@@ -6,6 +6,7 @@ import tempfile
 from typing import Any, Optional, Tuple
 
 import git
+import requests
 
 from github import Auth, Github
 
@@ -128,12 +129,13 @@ class GitHubClient:
     def clone_pr_repo(self, pr_url: str) -> Tuple[str, str]:
         """
         Clone the repository from a PR URL to a local temporary directory.
+        Note: This method only clones the repository and does not check out any branch.
 
         Args:
             pr_url: GitHub PR URL in the format https://github.com/owner/repo/pull/number
 
         Returns:
-            Tuple[str, str]: Path to the cloned repository, branch name
+            Tuple[str, str]: Path to the cloned repository, branch name of the PR (not checked out)
 
         Raises:
             ValueError: If the URL is not a valid GitHub PR URL
@@ -158,13 +160,8 @@ class GitHubClient:
             repo_path = os.path.join(temp_dir, repo)
             git_repo = git.Repo.clone_from(clone_url, repo_path)
 
-            # Fetch the PR branch
+            # Get the PR branch name without checking it out
             branch_name = pull_request.head.ref
-            origin = git_repo.remote()
-            origin.fetch(f'{branch_name}:refs/remotes/origin/{branch_name}')
-
-            # Checkout the PR branch
-            git_repo.git.checkout(branch_name)
 
             return repo_path, branch_name
         except Exception as e:
@@ -194,6 +191,71 @@ class GitHubClient:
             return pull_request.base.ref
         except Exception as e:
             raise RuntimeError(f"Error retrieving PR information: {str(e)}")
+
+    def get_and_apply_pr_patch(self, pr_url: str, repo_path: str) -> str:
+        """
+        Get the diff from a GitHub PR and apply it to a local repository.
+        This method also checks out the target branch before applying the patch.
+
+        Args:
+            pr_url: GitHub PR URL in the format https://github.com/owner/repo/pull/number
+            repo_path: Path to the local repository where the patch should be applied
+
+        Returns:
+            str: Path to the applied patch file
+
+        Raises:
+            ValueError: If the URL is not a valid GitHub PR URL or repo_path is invalid
+            RuntimeError: If there's an error retrieving or applying the patch
+        """
+        if not os.path.exists(repo_path) or not os.path.isdir(repo_path):
+            raise ValueError(f"Invalid repository path: {repo_path}")
+
+        try:
+            # Get GitHub objects
+            _, pull_request, owner, repo, pr_number = self._get_github_objects(
+                pr_url)
+
+            # Get the git repository
+            git_repo = git.Repo(repo_path)
+
+            # Checkout the target branch (base branch)
+            target_branch = pull_request.base.ref
+            origin = git_repo.remote()
+
+            # Fetch the target branch
+            origin.fetch(
+                f'{target_branch}:refs/remotes/origin/{target_branch}')
+
+            # Checkout the target branch
+            git_repo.git.checkout(target_branch)
+
+            # Construct the patch URL
+            patch_url = f"https://github.com/{owner}/{repo}/pull/{pr_number}.patch"
+
+            # Create a patch file path
+            patch_file = os.path.join(repo_path, f"pr-{pr_number}.patch")
+
+            # Authenticate request if token is available
+            headers = {}
+            if self.github_token:
+                headers["Authorization"] = f"token {self.github_token}"
+
+            # Get the patch content
+            response = requests.get(patch_url, headers=headers)
+            response.raise_for_status()
+
+            # Save the patch to a file
+            with open(patch_file, 'wb') as f:
+                f.write(response.content)
+
+            # Apply the patch using git
+            git_repo.git.execute(['git', 'apply', patch_file])
+
+            return patch_file
+        except Exception as e:
+            raise RuntimeError(
+                f"Error retrieving or applying PR patch: {str(e)}")
 
 
 # For backwards compatibility
@@ -243,6 +305,7 @@ def clean_up(repo_path: str) -> None:
 def clone_pr_repo(pr_url: str, github_token: Optional[str] = None) -> Tuple[str, str]:
     """
     Clone the repository from a PR URL to a local temporary directory.
+    Note: This function only clones the repository and does not check out any branch.
 
     Backwards compatibility function that creates a GitHubClient instance.
 
@@ -251,7 +314,7 @@ def clone_pr_repo(pr_url: str, github_token: Optional[str] = None) -> Tuple[str,
         github_token: Optional GitHub token for authentication (for private repos)
 
     Returns:
-        Tuple[str, str]: Path to the cloned repository, branch name
+        Tuple[str, str]: Path to the cloned repository, branch name of the PR (not checked out)
     """
     client = GitHubClient(github_token=github_token)
     return client.clone_pr_repo(pr_url)
@@ -272,3 +335,22 @@ def get_pr_target_branch(pr_url: str, github_token: Optional[str] = None) -> str
     """
     client = GitHubClient(github_token=github_token)
     return client.get_pr_target_branch(pr_url)
+
+
+# For backwards compatibility, expose the new method as a module-level function
+def get_and_apply_pr_patch(pr_url: str, repo_path: str, github_token: Optional[str] = None) -> str:
+    """
+    Get the diff from a GitHub PR and apply it to a local repository.
+
+    Backwards compatibility function that creates a GitHubClient instance.
+
+    Args:
+        pr_url: GitHub PR URL in the format https://github.com/owner/repo/pull/number
+        repo_path: Path to the local repository where the patch should be applied
+        github_token: Optional GitHub token for authentication (for private repos)
+
+    Returns:
+        str: Path to the applied patch file
+    """
+    client = GitHubClient(github_token=github_token)
+    return client.get_and_apply_pr_patch(pr_url, repo_path)

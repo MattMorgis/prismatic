@@ -1,5 +1,5 @@
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 
@@ -7,6 +7,7 @@ from src.github import (
     GitHubClient,
     clean_up,
     clone_pr_repo,
+    get_and_apply_pr_patch,
     get_pr_target_branch,
     parse_pr_url,
 )
@@ -80,7 +81,7 @@ class TestGitHubClient:
             "https://github.com/owner/repo.git",
             "/tmp/tempdir/repo"
         )
-        mock_git_repo.git.checkout.assert_called_with("feature-branch")
+        mock_git_repo.git.checkout.assert_not_called()
 
         assert repo_path == "/tmp/tempdir/repo"
         assert branch_name == "feature-branch"
@@ -123,6 +124,9 @@ class TestGitHubClient:
             "https://token123@github.com/owner/repo.git",
             os.path.join("/tmp/tempdir", "repo")
         )
+
+        # Assert that checkout is not called (removed from the method)
+        mock_git_repo.git.checkout.assert_not_called()
 
     @patch("src.github.Github")
     @patch("src.github.tempfile.mkdtemp")
@@ -233,6 +237,155 @@ class TestGitHubClient:
         mock_exists.assert_called_once_with("/tmp/tempdir/repo")
         mock_rmtree.assert_called_once()
 
+    @patch("src.github.requests.get")
+    @patch("src.github.git.Repo")
+    @patch("src.github.Github")
+    @patch("builtins.open", new_callable=mock_open)
+    def test_get_and_apply_pr_patch_success(self, mock_file, mock_github, mock_git_repo, mock_requests_get):
+        """Test successful retrieval and application of PR patch"""
+        # Setup response mock
+        mock_response = MagicMock()
+        mock_response.content = b"Patch content"
+        mock_requests_get.return_value = mock_response
+
+        # Setup GitHub objects
+        mock_pr = MagicMock()
+        mock_pr.base.ref = "main"  # Add target branch information
+        mock_repo = MagicMock()
+        mock_repo.get_pull.return_value = mock_pr
+
+        mock_github_instance = mock_github.return_value
+        mock_github_instance.get_repo.return_value = mock_repo
+
+        # Setup git repo mock
+        mock_git_instance = MagicMock()
+        mock_git_repo.return_value = mock_git_instance
+        mock_git_instance.git = MagicMock()
+        mock_git_instance.remote.return_value = MagicMock()  # Mock remote for fetching
+
+        # Setup os.path mocks
+        with patch("os.path.exists") as mock_exists, patch("os.path.isdir") as mock_isdir:
+            mock_exists.return_value = True
+            mock_isdir.return_value = True
+
+            # Create client and call method
+            client = GitHubClient()
+            result = client.get_and_apply_pr_patch(
+                "https://github.com/owner/repo/pull/123", "/tmp/repo")
+
+        # Assertions
+        mock_requests_get.assert_called_with(
+            "https://github.com/owner/repo/pull/123.patch", headers={})
+        mock_file.assert_called_with("/tmp/repo/pr-123.patch", "wb")
+        mock_file().write.assert_called_with(b"Patch content")
+
+        # Assert target branch checkout
+        mock_git_instance.remote.assert_called_once()
+        mock_git_instance.remote().fetch.assert_called_with(
+            "main:refs/remotes/origin/main")
+        mock_git_instance.git.checkout.assert_called_with("main")
+
+        # Assert patch application
+        mock_git_instance.git.execute.assert_called_with(
+            ['git', 'apply', '/tmp/repo/pr-123.patch'])
+        assert result == "/tmp/repo/pr-123.patch"
+
+    @patch("src.github.requests.get")
+    @patch("src.github.Github")
+    def test_get_and_apply_pr_patch_with_token(self, mock_github, mock_requests_get):
+        """Test PR patch retrieval with GitHub token"""
+        # Setup response mock
+        mock_response = MagicMock()
+        mock_response.content = b"Patch content"
+        mock_requests_get.return_value = mock_response
+
+        # Setup GitHub objects
+        mock_pr = MagicMock()
+        mock_repo = MagicMock()
+        mock_repo.get_pull.return_value = mock_pr
+
+        mock_github_instance = mock_github.return_value
+        mock_github_instance.get_repo.return_value = mock_repo
+
+        # Setup git repo mock
+        with patch("src.github.git.Repo") as mock_git_repo, \
+                patch("os.path.exists") as mock_exists, \
+                patch("os.path.isdir") as mock_isdir, \
+                patch("builtins.open", new_callable=mock_open):
+
+            mock_exists.return_value = True
+            mock_isdir.return_value = True
+
+            mock_git_instance = MagicMock()
+            mock_git_repo.return_value = mock_git_instance
+            mock_git_instance.git = MagicMock()
+
+            # Create client with token and call method
+            client = GitHubClient(github_token="token123")
+            client.get_and_apply_pr_patch(
+                "https://github.com/owner/repo/pull/123", "/tmp/repo")
+
+        # Assert that the token was used in the request
+        mock_requests_get.assert_called_with(
+            "https://github.com/owner/repo/pull/123.patch",
+            headers={"Authorization": "token token123"}
+        )
+
+    @patch("src.github.Github")
+    def test_get_and_apply_pr_patch_invalid_path(self, mock_github):
+        """Test error handling for invalid repository path"""
+        client = GitHubClient()
+
+        with patch("os.path.exists") as mock_exists:
+            mock_exists.return_value = False
+
+            # Call the function and assert exception
+            with pytest.raises(ValueError) as excinfo:
+                client.get_and_apply_pr_patch(
+                    "https://github.com/owner/repo/pull/123", "/nonexistent/path")
+
+        assert "Invalid repository path: /nonexistent/path" in str(
+            excinfo.value)
+
+    @patch("src.github.requests.get")
+    @patch("src.github.Github")
+    def test_get_and_apply_pr_patch_exception(self, mock_github, mock_requests_get):
+        """Test error handling during PR patch retrieval"""
+        # Setup GitHub objects
+        mock_pr = MagicMock()
+        mock_pr.base.ref = "main"  # Add the target branch
+        mock_repo = MagicMock()
+        mock_repo.get_pull.return_value = mock_pr
+
+        mock_github_instance = mock_github.return_value
+        mock_github_instance.get_repo.return_value = mock_repo
+
+        # Setup requests to raise exception
+        mock_requests_get.side_effect = Exception("Network error")
+
+        with patch("os.path.exists") as mock_exists, \
+                patch("os.path.isdir") as mock_isdir, \
+                patch("src.github.git.Repo") as mock_git_repo:
+
+            mock_exists.return_value = True
+            mock_isdir.return_value = True
+
+            # Setup git mock for target branch checkout
+            mock_git_instance = MagicMock()
+            mock_git_repo.return_value = mock_git_instance
+            mock_git_instance.remote.return_value = MagicMock()
+
+            # Create client and call the method
+            client = GitHubClient()
+
+            # Call the function and assert exception
+            with pytest.raises(RuntimeError) as excinfo:
+                client.get_and_apply_pr_patch(
+                    "https://github.com/owner/repo/pull/123", "/tmp/repo")
+
+        assert "Error retrieving or applying PR patch: Network error" in str(
+            excinfo.value)
+
 
 # Legacy function tests to ensure backwards compatibility
 class TestClonePrRepo:
@@ -297,5 +450,20 @@ class TestGetPrTargetBranch:
         result = get_pr_target_branch(
             "https://github.com/owner/repo/pull/123", "token123")
 
+        mock_get_pr_target_branch.assert_called_once_with(
+            "https://github.com/owner/repo/pull/123")
         assert result == "main"
-        mock_get_pr_target_branch.assert_called_once()
+
+
+class TestGetAndApplyPrPatch:
+    @patch("src.github.GitHubClient.get_and_apply_pr_patch")
+    def test_legacy_get_and_apply_pr_patch(self, mock_get_and_apply_pr_patch):
+        """Test that the legacy function correctly delegates to the GitHubClient"""
+        mock_get_and_apply_pr_patch.return_value = "/path/to/patch/file.patch"
+
+        result = get_and_apply_pr_patch(
+            "https://github.com/owner/repo/pull/123", "/path/to/repo", "token123")
+
+        mock_get_and_apply_pr_patch.assert_called_once_with(
+            "https://github.com/owner/repo/pull/123", "/path/to/repo")
+        assert result == "/path/to/patch/file.patch"
