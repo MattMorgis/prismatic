@@ -34,7 +34,7 @@ async def run_multi_code_review(pr_url):
             pr_fetcher = Agent(
                 name="pr_fetcher",
                 instruction=PR_FETCHER_INSTRUCTION,
-                server_names=["github", "file-system"],
+                server_names=["github", "file", "git"],
             )
 
             # Parse the PR URL to extract owner, repo, and PR number

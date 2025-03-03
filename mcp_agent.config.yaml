@@ -13,7 +13,7 @@ mcp:
     # Git MCP server (optional - if needed for deeper repo analysis)
     git:
       command: 'uvx'
-      args: ['mcp-server-git', '--repository', "/tmp/pr_checkout"]
+      args: ['mcp-server-git']
 
     # Fetch server for accessing web resources
     fetch:
