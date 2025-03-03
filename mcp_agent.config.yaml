@@ -9,8 +9,6 @@ mcp:
     github:
       command: 'npx'
       args: ['-y', '@modelcontextprotocol/server-github']
-      env:
-        GITHUB_PERSONAL_ACCESS_TOKEN: "${{secrets.github.token}}"
 
     # Git MCP server (optional - if needed for deeper repo analysis)
     git:
