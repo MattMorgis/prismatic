@@ -1,7 +1,8 @@
 execution_engine: asyncio
 logger:
-  type: console
+  type: file
   level: debug
+  path: "logs/multi-code-reviewer.jsonl"
 
 mcp:
   servers:

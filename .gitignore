@@ -175,3 +175,6 @@ cython_debug/
 
 # Secret file
 mcp_agent.secrets.yaml
+
+# logs
+logs/**/*
