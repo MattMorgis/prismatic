@@ -233,13 +233,22 @@ class GitHubClient:
             # Log local repo origin
             try:
                 local_origin_url = next(iter(git_repo.remote().urls))
+                # Redact any tokens in the URL before logging
+                redacted_url = local_origin_url
+                if '@' in redacted_url:
+                    # If URL contains authentication, redact it
+                    protocol_part = redacted_url.split('://')[0] + '://'
+                    auth_and_rest = redacted_url.split('://')[1]
+                    rest_part = auth_and_rest.split('@', 1)[1]
+                    redacted_url = f"{protocol_part}***@{rest_part}"
+
                 self.logger.info(
-                    f"Local repository origin: {local_origin_url}")
+                    f"Local repository origin: {redacted_url}")
 
                 # Keep logs for debugging but without conditional
                 pr_repo_url = f"https://github.com/{owner}/{repo}.git"
                 self.logger.info(f"PR repository URL: {pr_repo_url}")
-                self.logger.info(f"Local repository URL: {local_origin_url}")
+                self.logger.info(f"Local repository URL: {redacted_url}")
 
             except Exception as e:
                 self.logger.warning(
@@ -257,8 +266,21 @@ class GitHubClient:
 
             # Setup remotes
             origin = git_repo.remote()
+            # Redact any tokens in the URLs before logging
+            origin_urls = list(origin.urls)
+            redacted_origin_urls = []
+            for url in origin_urls:
+                redacted_url = url
+                if '@' in redacted_url:
+                    # If URL contains authentication, redact it
+                    protocol_part = redacted_url.split('://')[0] + '://'
+                    auth_and_rest = redacted_url.split('://')[1]
+                    rest_part = auth_and_rest.split('@', 1)[1]
+                    redacted_url = f"{protocol_part}***@{rest_part}"
+                redacted_origin_urls.append(redacted_url)
+
             self.logger.info(
-                f"Local origin remote: {origin.name} -> {list(origin.urls)}")
+                f"Local origin remote: {origin.name} -> {redacted_origin_urls}")
 
             # Add PR's repo as a remote if it's a fork
             if pr_repo_owner != owner or pr_repo_name != repo:
@@ -308,16 +330,32 @@ class GitHubClient:
                     f"Branch {pr_local_branch} already exists, deleting it")
                 git_repo.delete_head(pr_local_branch, force=True)
 
-            self.logger.info(
-                f"Creating branch {pr_local_branch} from {origin.name}/{pr_branch}")
-            try:
-                git_repo.create_head(
-                    pr_local_branch, origin.refs[pr_branch])
-            except Exception as e:
-                self.logger.error(f"Error creating branch: {str(e)}")
+            # Use the appropriate remote based on whether it's a fork or not
+            if pr_repo_owner != owner or pr_repo_name != repo:
+                # For forks, use the PR remote
+                remote_to_use = pr_remote
                 self.logger.info(
-                    f"Available references on {origin.name}: {[ref.name for ref in origin.refs]}")
-                raise
+                    f"Creating branch {pr_local_branch} from {remote_to_use.name}/{pr_branch}")
+                try:
+                    git_repo.create_head(
+                        pr_local_branch, remote_to_use.refs[pr_branch])
+                except Exception as e:
+                    self.logger.error(f"Error creating branch: {str(e)}")
+                    self.logger.info(
+                        f"Available references on {remote_to_use.name}: {[ref.name for ref in remote_to_use.refs]}")
+                    raise
+            else:
+                # For same-repo PRs, use origin
+                self.logger.info(
+                    f"Creating branch {pr_local_branch} from {origin.name}/{pr_branch}")
+                try:
+                    git_repo.create_head(
+                        pr_local_branch, origin.refs[pr_branch])
+                except Exception as e:
+                    self.logger.error(f"Error creating branch: {str(e)}")
+                    self.logger.info(
+                        f"Available references on {origin.name}: {[ref.name for ref in origin.refs]}")
+                    raise
 
             # Checkout the PR branch
             self.logger.info(f"Checking out PR branch: {pr_local_branch}")
