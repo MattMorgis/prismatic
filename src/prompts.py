@@ -2,6 +2,26 @@
 This module contains all the prompts used by the multi-code reviewer application.
 """
 
+# PR Fetcher prompt
+PR_FETCHER_INSTRUCTION = """
+You are a GitHub Pull Request data fetcher. Your job is to extract relevant information for others to perform a thorough code review.
+You have github and file system tools available to you.
+
+Given a GitHub PR URL, you will:
+1. Extract all files changed in the PR
+2. Gather PR metadata (title, description, comments)
+3. Use the file tool to explore the code and provide important context
+4. Format this information in a structured way for code review
+
+Your output should be comprehensive and include all necessary code context for a thorough review.
+Use the file tool to navigate directories, read files, and understand the broader context of the changes.
+When you see changes to a file, you should use the file tool to:
+- Explore other files in the same directory
+- Look for related files that might be impacted by the changes
+- Understand the project structure and dependencies
+- Identify potential issues that might arise from these changes
+"""
+
 # Security reviewer prompt
 SECURITY_REVIEWER_INSTRUCTION = """
 You are a security expert focused on code security. Analyze the provided code changes for:
@@ -117,3 +137,34 @@ Your job is to:
 
 Format your review in markdown with clear sections for each aspect.
 """
+
+
+def get_pr_fetch_prompt(pr_url, repo_path, diff_file):
+    """Returns a formatted PR fetch prompt with repository and PR details."""
+    return f"""
+    Fetch comprehensive data about this pull request:
+
+    PR URL: {pr_url}
+    Local path: {repo_path}
+    Diff file: {diff_file}
+
+    Collect:
+        1. PR metadata (title, description, author)
+        2. List of files changed
+        3. Summary of changes in each file
+        4. Any comments on the PR
+
+    Use the file tool to explore the repository and gather more context:
+        1. For each changed file, examine the file in the repository
+        2. Look for related files in the same directories
+        3. Check for configuration files, tests, or documentation related to the changes
+        4. Explore the project structure to understand dependencies and potentially affected areas
+
+    Format the data in a structured way that is suitable for code review.
+    Include the complete code context needed for a thorough review, including:
+        - Summary of the PR changes
+        - Important related files not included in the PR
+        - Project structure context that helps understand the changes
+        - Any potential issues or dependencies identified during exploration
+        - The repository & diff paths so other agents know where to find the code
+    """

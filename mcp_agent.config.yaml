@@ -4,6 +4,9 @@ logger:
   level: debug
   path: "logs/multi-code-reviewer.jsonl"
 
+anthropic:
+  default_model: "claude-3-7-sonnet-latest"
+
 mcp:
   servers:
     # GitHub MCP server
