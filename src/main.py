@@ -1,5 +1,3 @@
-import os
-
 from mcp_agent.app import MCPApp
 from mcp_agent.config import get_settings
 
@@ -25,26 +23,12 @@ async def run_multi_code_review(pr_url):
             github_client = GitHubClient(
                 github_token=get_github_token(), custom_logger=logger)
 
-            # Check if REPO_PATH environment variable is set
-            if get_settings().model_extra.get('repo_path') or os.environ.get("REPO_PATH"):
-                repo_path = get_settings().model_extra['repo_path']
-                logger.info(
-                    f"Using existing repository path from environment: {repo_path}")
-            else:
-                # Use the client to clone the repository if REPO_PATH is not set
-                repo_path = github_client.clone_pr_repo(pr_url)
-                print(f"Cloned repository to: {repo_path}")
-                logger.info(f"Cloned repository to: {repo_path}")
-
+            repo_path = github_client.clone_pr_repo(pr_url)
             target_branch = github_client.get_pr_target_branch(pr_url)
 
             # Check if repository validation should be performed
-            validate_repo = get_settings().model_extra.get('validate_repo', True)
-            logger.info(
-                f"Repository validation is {'enabled' if validate_repo else 'disabled'}")
-
             patch_file = github_client.get_and_apply_pr_patch(
-                pr_url, repo_path, validate_repo=validate_repo)
+                pr_url, repo_path)
             logger.info("Review details:")
             logger.info(f"Repository path: {repo_path}")
             logger.info(f"Patch file: {patch_file}")
