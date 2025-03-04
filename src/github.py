@@ -91,9 +91,6 @@ class GitHubClient:
         """
         Safely remove a directory.
 
-        Note: Using os.system with rm -rf is potentially dangerous, but kept for
-        backward compatibility. In production, this should be replaced with safer alternatives.
-
         Args:
             dir_path: Path to the directory to remove
         """
@@ -120,16 +117,20 @@ class GitHubClient:
             # Path doesn't exist, nothing to clean up
             return
 
-        # Get the parent directory (the temp directory) if it's a subdirectory
-        # Otherwise, remove the directory directly
-        # FIXME: Don't like this logic, come back later
+        # Since we're always creating repos in temp directories now,
+        # we should remove the parent temp directory
         temp_dir = os.path.dirname(repo_path)
-        if temp_dir:
+
+        # If we have a valid parent directory, remove it
+        # Otherwise fall back to removing just the repo path
+        if temp_dir and os.path.exists(temp_dir):
+            self.logger.info(f"Cleaning up temporary directory: {temp_dir}")
             self._safe_remove_directory(temp_dir)
         else:
+            self.logger.info(f"Cleaning up repository directory: {repo_path}")
             self._safe_remove_directory(repo_path)
 
-    def clone_pr_repo(self, pr_url: str) -> Tuple[str, str]:
+    def clone_pr_repo(self, pr_url: str) -> str:
         """
         Clone the repository from a PR URL to a local temporary directory.
         Note: This method only clones the repository and does not check out any branch.
@@ -138,7 +139,7 @@ class GitHubClient:
             pr_url: GitHub PR URL in the format https://github.com/owner/repo/pull/number
 
         Returns:
-            Tuple[str, str]: Path to the cloned repository, branch name of the PR (not checked out)
+            str: Path to the cloned repository
 
         Raises:
             ValueError: If the URL is not a valid GitHub PR URL
@@ -146,6 +147,7 @@ class GitHubClient:
         """
         # Create a temporary directory
         temp_dir = tempfile.mkdtemp()
+        self.logger.info(f"Created temporary directory: {temp_dir}")
 
         try:
             # Get GitHub objects
@@ -161,12 +163,13 @@ class GitHubClient:
 
             # Clone the repository
             repo_path = os.path.join(temp_dir, repo)
-            git_repo = git.Repo.clone_from(
-                clone_url, repo_path)
+            self.logger.info(f"Cloning repository to: {repo_path}")
+            git.Repo.clone_from(clone_url, repo_path)
 
             return repo_path
         except Exception as e:
             # Clean up the temporary directory in case of failure
+            self.logger.info(f"Error during cloning, cleaning up: {temp_dir}")
             self._safe_remove_directory(temp_dir)
             raise RuntimeError(f"Error cloning repository: {str(e)}")
 
@@ -193,7 +196,7 @@ class GitHubClient:
         except Exception as e:
             raise RuntimeError(f"Error retrieving PR information: {str(e)}")
 
-    def get_and_apply_pr_patch(self, pr_url: str, repo_path: str, validate_repo: bool = True) -> str:
+    def get_and_apply_pr_patch(self, pr_url: str, repo_path: str) -> str:
         """
         Get the changes from a GitHub PR and apply them to a local repository using fetch and merge.
         This method checks out the target branch and merges the PR branch.
@@ -201,7 +204,6 @@ class GitHubClient:
         Args:
             pr_url: GitHub PR URL in the format https://github.com/owner/repo/pull/number
             repo_path: Path to the local repository where the changes should be applied
-            validate_repo: Whether to validate that the local repository matches the PR's target repository
 
         Returns:
             str: Path to a file containing the diff of the changes
@@ -234,57 +236,14 @@ class GitHubClient:
                 self.logger.info(
                     f"Local repository origin: {local_origin_url}")
 
-                # Validate that the local repository matches the PR's target repository
-                if validate_repo:
-                    # Extract repository info from both URLs to compare
-                    pr_repo_url = f"https://github.com/{owner}/{repo}.git"
+                # Keep logs for debugging but without conditional
+                pr_repo_url = f"https://github.com/{owner}/{repo}.git"
+                self.logger.info(f"PR repository URL: {pr_repo_url}")
+                self.logger.info(f"Local repository URL: {local_origin_url}")
 
-                    # Normalize URLs for comparison (remove token, handle SSH URLs)
-                    def normalize_git_url(url):
-                        # Handle SSH URLs
-                        if url.startswith('git@github.com:'):
-                            url = url.replace(
-                                'git@github.com:', 'https://github.com/')
-
-                        # Strip authentication tokens
-                        if '@' in url:
-                            url = url.split('@', 1)[1]
-                            if not url.startswith('github.com'):
-                                url = 'github.com/' + url
-                            url = 'https://' + url
-
-                        # Ensure consistent ending
-                        if not url.endswith('.git'):
-                            url = url + '.git'
-
-                        return url.lower()
-
-                    normalized_pr_repo_url = normalize_git_url(pr_repo_url)
-                    normalized_local_repo_url = normalize_git_url(
-                        local_origin_url)
-
-                    self.logger.info(
-                        f"Normalized PR repository URL: {normalized_pr_repo_url}")
-                    self.logger.info(
-                        f"Normalized local repository URL: {normalized_local_repo_url}")
-
-                    if normalized_pr_repo_url != normalized_local_repo_url:
-                        error_msg = f"Repository mismatch! PR is from {normalized_pr_repo_url} but local repository is {normalized_local_repo_url}"
-                        self.logger.error(error_msg)
-                        raise ValueError(error_msg)
-                    else:
-                        self.logger.info(
-                            "Repository validation successful: local repository matches PR's target repository")
-
-            except ValueError:
-                # Re-raise ValueError directly without catching and transforming to RuntimeError
-                raise
             except Exception as e:
                 self.logger.warning(
-                    f"Could not validate repository match: {str(e)}")
-                if validate_repo:
-                    raise ValueError(
-                        f"Could not validate repository match: {str(e)}")
+                    f"Could not retrieve local repository URL: {str(e)}")
 
             # Get PR and target branch information
             target_branch = pull_request.base.ref
@@ -336,7 +295,7 @@ class GitHubClient:
                 self.logger.info("Fetching from origin")
                 origin.fetch()
 
-            # Checkout target branch
+           # Checkout target branch
             self.logger.info(f"Checking out target branch: {target_branch}")
             git_repo.git.checkout(target_branch)
 
@@ -350,14 +309,14 @@ class GitHubClient:
                 git_repo.delete_head(pr_local_branch, force=True)
 
             self.logger.info(
-                f"Creating branch {pr_local_branch} from {pr_remote.name}/{pr_branch}")
+                f"Creating branch {pr_local_branch} from {origin.name}/{pr_branch}")
             try:
                 git_repo.create_head(
-                    pr_local_branch, pr_remote.refs[pr_branch])
+                    pr_local_branch, origin.refs[pr_branch])
             except Exception as e:
                 self.logger.error(f"Error creating branch: {str(e)}")
                 self.logger.info(
-                    f"Available references on {pr_remote.name}: {[ref.name for ref in pr_remote.refs]}")
+                    f"Available references on {origin.name}: {[ref.name for ref in origin.refs]}")
                 raise
 
             # Checkout the PR branch
