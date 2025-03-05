@@ -18,11 +18,7 @@ Each reviewer utilizes the [GitHub](https://github.com/modelcontextprotocol/serv
 
 ## Setup
 
-1. Install the required dependencies:
-
-```bash
-pip install -r requirements.txt
-```
+1. Install [uv](https://github.com/astral-sh/uv) if you haven't already
 
 2. Create a `mcp_agent.secrets.yaml` file (using the .example file as a template) with your API keys.
 
@@ -31,7 +27,7 @@ pip install -r requirements.txt
 To review a GitHub pull request:
 
 ```bash
-python prismatic.py https://github.com/username/repo/pull/123
+uv run main.py https://github.com/username/repo/pull/123
 ```
 
 ## Configuration

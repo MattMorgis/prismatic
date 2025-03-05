@@ -16,7 +16,7 @@ from src.prompts import (
 )
 
 # Initialize the MCPApp
-app = MCPApp(name="multi_code_reviewer")
+app = MCPApp(name="prismatic")
 
 
 def get_github_token():
@@ -34,10 +34,10 @@ def fetch_repo(pr_url, github_client):
     return repo_path, patch_file
 
 
-async def run_multi_code_review(pr_url):
+async def run_code_review(pr_url):
     """Main function to orchestrate the multi-code review process"""
-    async with app.run() as multi_code_reviewer:
-        logger = multi_code_reviewer.logger
+    async with app.run() as prismatic:
+        logger = prismatic.logger
         logger.info(f"Starting multi-code review for PR: {pr_url}")
 
         # Initialize variables that might be used in finally block

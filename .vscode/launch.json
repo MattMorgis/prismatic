@@ -5,7 +5,7 @@
       "name": "Python: multi-code-reviewer",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/multi_code_reviewer.py",
+      "program": "${workspaceFolder}/prismatic.py",
       "args": [
         "https://github.com/lastmile-ai/mcp-agent/pull/29"
       ],
