@@ -1,4 +1,3 @@
-import logging
 import os
 import re
 import shutil
@@ -8,9 +7,6 @@ from typing import Any, Optional, Tuple
 import git
 
 from github import Github
-
-# Configure logging
-logger = logging.getLogger(__name__)
 
 
 def parse_pr_url(pr_url: str) -> Tuple[str, str, int]:
@@ -45,13 +41,13 @@ class GitHubClient:
     such as cloning repositories and retrieving PR information.
     """
 
-    def __init__(self, github_token: Optional[str] = None, custom_logger=None):
+    def __init__(self, github_token: Optional[str] = None, logger=None):
         """
         Initialize a GitHubClient.
 
         Args:
             github_token: Optional GitHub token for authentication (for private repos)
-            custom_logger: Optional custom logger to use instead of the default module logger
+            logger: Optional custom logger to use instead of the default module logger
         """
         self.github_token = github_token
         if github_token:
@@ -61,7 +57,7 @@ class GitHubClient:
             self.github = Github()
 
         # Use custom logger if provided, otherwise use module logger
-        self.logger = custom_logger if custom_logger else logger
+        self.logger = logger
 
     def _get_github_objects(self, pr_url: str) -> Tuple[Any, Any, str, str, int]:
         """

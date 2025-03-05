@@ -42,7 +42,7 @@ async def run_multi_code_review(pr_url):
 
         try:
             github_client = GitHubClient(
-                github_token=get_github_token(), custom_logger=logger)
+                github_token=get_github_token(), logger=logger)
 
             repo_path, patch_file = fetch_repo(pr_url, github_client)
             logger.info(f"Repository path: {repo_path}")
