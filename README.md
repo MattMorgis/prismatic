@@ -1,10 +1,9 @@
-# Multi-Code-Reviewer
+# **PR**ismatic: A Code Review Agent
 
-A specialized tool for reviewing GitHub pull requests from multiple perspectives, built using the `mcp-agent` framework. This tool conducts comprehensive code reviews with specialized agents that focus on different aspects of code quality.
+An AI Agent for reviewing GitHub pull requests from multiple perspectives, built using the `mcp-agent` framework.
 
 ## Features
-
-The Multi-Code-Reviewer analyzes pull requests from four specialized perspectives:
+**PR**ismatic analyzes pull requests from four specialized perspectives:
 
 1. **Security Reviewer**: Identifies security vulnerabilities and best practices
 2. **Performance Reviewer**: Focuses on performance optimizations and bottlenecks
@@ -36,25 +35,24 @@ pip install -r requirements.txt
 To review a GitHub pull request:
 
 ```bash
-python main.py https://github.com/username/repo/pull/123
+python prismatic.py https://github.com/username/repo/pull/123
 ```
-
-The tool will:
-1. Fetch the PR data from GitHub
-2. Explore the local repository for additional context
-3. Conduct specialized reviews in parallel
-4. Generate a comprehensive review report
 
 ## Configuration
 
-The tool can be configured using the `mcp_agent.config.yaml` file, which allows you to:
+### GitHub Access Token
+You need a [GitHub Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
+* Go to [Personal access tokens](https://github.com/settings/personal-access-tokens) (in GitHub Settings > Developer settings)
+* Select which repositories you'd like this token to have access to (Public, All, or Select)
+* Copy the generated token
 
-- Select different LLM providers and models
-- Adjust the logging level
-- Configure the various MCP servers
+### Anthropic API Key
+You need an Anthropic API Key
+* Go to [Anthropic API Console](https://console.anthropic.com/settings/keys)
+* Copy your API key
 
 ## Requirements
 
-- Python 3.9+
-- OpenAI API key
+- Python 3.11+
+- Anthropic API key
 - GitHub access for PR details

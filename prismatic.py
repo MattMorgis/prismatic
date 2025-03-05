@@ -13,7 +13,7 @@ if __name__ == "__main__":
     import time
 
     parser = argparse.ArgumentParser(
-        description="Multi-perspective code reviewer for GitHub PRs"
+        description="PRismatic code reviewer"
     )
     parser.add_argument("pr_url", help="GitHub Pull Request URL to review")
     args = parser.parse_args()
@@ -23,11 +23,11 @@ if __name__ == "__main__":
     end_time = time.time()
 
     print("\n" + "=" * 80)
-    print("MULTI-CODE REVIEWER REPORT")
+    print("PRismatic REPORT")
     print("=" * 80 + "\n")
     if review_result:
         print(review_result)
-        with open('code_review_report.md', 'w') as f:
+        with open('prismatic_report.md', 'w') as f:
             f.write(review_result)
     else:
         print("PR is not open, skipping review")
