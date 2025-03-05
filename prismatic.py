@@ -7,6 +7,7 @@ This script simply imports and runs the main functionality from the src package.
 import asyncio
 
 from src.main import run_multi_code_review
+from src.report import ReportGenerator
 
 if __name__ == "__main__":
     import argparse
@@ -27,8 +28,10 @@ if __name__ == "__main__":
     print("=" * 80 + "\n")
     if review_result:
         print(review_result)
-        with open('prismatic_report.md', 'w') as f:
-            f.write(review_result)
+        # Use ReportGenerator to save the report
+        report_gen = ReportGenerator()
+        report_path = report_gen.generate_report(args.pr_url, review_result)
+        print(f"\nReport saved to: {report_path}")
     else:
         print("PR is not open, skipping review")
     print(f"\nReview completed in {end_time - start_time:.2f} seconds")

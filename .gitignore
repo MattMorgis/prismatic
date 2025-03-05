@@ -177,4 +177,5 @@ cython_debug/
 mcp_agent.secrets.yaml
 
 # logs
-logs/**/*
+logs/**/*.jsonl
+reviews/**/*.md
