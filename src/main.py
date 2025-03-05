@@ -8,11 +8,11 @@ from src.github import GitHubClient
 from src.prompts import (
     CLARITY_REVIEWER_INSTRUCTION,
     PERFORMANCE_REVIEWER_INSTRUCTION,
-    PR_FETCHER_INSTRUCTION,
+    PR_SUMMARIZER_INSTRUCTION,
     REVIEW_AGGREGATOR_INSTRUCTION,
     SECURITY_REVIEWER_INSTRUCTION,
     TEST_REVIEWER_INSTRUCTION,
-    get_pr_fetch_prompt,
+    get_pr_summarizer_prompt,
 )
 
 # Initialize the MCPApp
@@ -57,26 +57,26 @@ async def run_multi_code_review(pr_url):
             logger.info(f"Repository path: {repo_path}")
             logger.info(f"Patch file: {patch_file}")
 
-            # Create PR fetcher agent that uses the GitHub MCP server
-            pr_fetcher = Agent(
-                name="pr_fetcher",
-                instruction=PR_FETCHER_INSTRUCTION,
+            # Create PR summarizer agent that uses the GitHub MCP server
+            pr_summarizer = Agent(
+                name="pr_summarizer",
+                instruction=PR_SUMMARIZER_INSTRUCTION,
                 server_names=["github", "file"],
             )
 
-            async with pr_fetcher:
+            async with pr_summarizer:
                 # Attach LLM to the PR fetcher agent
-                pr_llm = await pr_fetcher.attach_llm(AnthropicAugmentedLLM)
+                pr_llm = await pr_summarizer.attach_llm(AnthropicAugmentedLLM)
 
-                pr_fetch_prompt = get_pr_fetch_prompt(
+                pr_summarizer_prompt = get_pr_summarizer_prompt(
                     pr_url=pr_url,
                     repo_path=repo_path,
                     diff_file=patch_file,
                 )
 
-                # pr_data = await pr_llm.generate_str(pr_fetch_prompt)
-                # logger.info(
-                #     f"Successfully summarized PR {pr_data}")
+                pr_data = await pr_llm.generate_str(pr_summarizer_prompt)
+                logger.info(
+                    f"Successfully summarized PR {pr_data}")
 
                 # Create specialized reviewer agents
                 security_reviewer = Agent(
@@ -124,7 +124,7 @@ async def run_multi_code_review(pr_url):
 
                 # Execute parallel review
                 review_result = await parallel.generate_str(
-                    message=f"Review the following GitHub pull request:\n\nPR URL: {pr_url}\nRepository Path: {repo_path}\nPatch File: {patch_file}",
+                    message=f"Review the following GitHub pull request:\n\nPR URL: {pr_url}\nRepository Path: {repo_path}\nPatch File: {patch_file}\n\nPR Summary: {pr_data}",
                 )
 
                 logger.info("Multi-code review completed successfully!")

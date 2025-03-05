@@ -2,8 +2,8 @@
 This module contains all the prompts used by the multi-code reviewer application.
 """
 
-# PR Fetcher prompt
-PR_FETCHER_INSTRUCTION = """
+# PR Summarizer prompt
+PR_SUMMARIZER_INSTRUCTION = """
 You are a GitHub Pull Request data fetcher. Your job is to extract relevant information for others to perform a thorough code review.
 You have github and file system tools available to you.
 
@@ -139,7 +139,7 @@ Format your review in markdown with clear sections for each aspect.
 """
 
 
-def get_pr_fetch_prompt(pr_url, repo_path, diff_file):
+def get_pr_summarizer_prompt(pr_url, repo_path, diff_file):
     """Returns a formatted PR fetch prompt with repository and PR details."""
     return f"""
     Fetch comprehensive data about this pull request:
