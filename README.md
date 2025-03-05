@@ -12,13 +12,9 @@ An AI Agent for reviewing GitHub pull requests from multiple perspectives, built
 
 Each reviewer provides specialized feedback, which is then aggregated into a comprehensive review report with prioritized recommendations.
 
-## Enhanced Capabilities
+## MCP Integration
 
-- **GitHub PR Integration**: Fetches PR metadata, diff information, and comments
-- **File System Access**: Explores the local repository to provide deeper context for the changes
-- **Parallel Review**: Reviews happen in parallel to speed up the process
-- **Report Aggregation**: Combines specialized reviews into a cohesive, actionable report
-- **Contextual Understanding**: Examines related files and project structure to provide more relevant feedback
+Each reviewer utilizes the [GitHub](https://github.com/modelcontextprotocol/servers/tree/main/src/github) and [FileSystem](https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem) MCP Servers to access PR metadata, diff information, and other reviewers' comments. This integration allows for a comprehensive analysis by exploring the local repository to provide deeper context for the changes.
 
 ## Setup
 
