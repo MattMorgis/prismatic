@@ -25,6 +25,10 @@ if __name__ == "__main__":
     print("\n" + "=" * 80)
     print("MULTI-CODE REVIEWER REPORT")
     print("=" * 80 + "\n")
-    with open('code_review_report.md', 'w') as f:
-        f.write(review_result)
+    if review_result:
+        print(review_result)
+        with open('code_review_report.md', 'w') as f:
+            f.write(review_result)
+    else:
+        print("PR is not open, skipping review")
     print(f"\nReview completed in {end_time - start_time:.2f} seconds")

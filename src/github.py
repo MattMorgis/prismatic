@@ -379,3 +379,26 @@ class GitHubClient:
                 f"Error retrieving or applying PR changes: {str(e)}", exc_info=True)
             raise ValueError(
                 f"Error retrieving or applying PR changes: {str(e)}")
+
+    def is_pr_open(self, pr_url: str) -> bool:
+        """
+        Check if a GitHub pull request is still open.
+
+        Args:
+            pr_url: GitHub PR URL in the format https://github.com/owner/repo/pull/number
+
+        Returns:
+            bool: True if the PR is open, False if it's closed or merged
+
+        Raises:
+            ValueError: If the URL is not a valid GitHub PR URL
+            RuntimeError: If there's an error retrieving the PR information
+        """
+        try:
+            # Get GitHub objects
+            _, pull_request, _, _, _ = self._get_github_objects(pr_url)
+
+            # Check if the PR is open (not closed and not merged)
+            return pull_request.state == "open"
+        except Exception as e:
+            raise RuntimeError(f"Error checking PR status: {str(e)}")

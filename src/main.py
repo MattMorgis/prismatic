@@ -40,9 +40,18 @@ async def run_multi_code_review(pr_url):
         logger = multi_code_reviewer.logger
         logger.info(f"Starting multi-code review for PR: {pr_url}")
 
+        # Initialize variables that might be used in finally block
+        repo_path = None
+        github_client = None
+
         try:
             github_client = GitHubClient(
                 github_token=get_github_token(), logger=logger)
+
+            pr_is_open = github_client.is_pr_open(pr_url=pr_url)
+            if not pr_is_open:
+                logger.info(f"PR {pr_url} is not open, skipping review")
+                return ""
 
             repo_path, patch_file = fetch_repo(pr_url, github_client)
             logger.info(f"Repository path: {repo_path}")
