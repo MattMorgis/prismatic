@@ -1,4 +1,0 @@
-mcp-agent
-anthropic
-PyGithub
-GitPython
