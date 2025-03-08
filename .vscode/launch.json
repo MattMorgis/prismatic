@@ -2,11 +2,14 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Python: multi-code-reviewer",
-      "type": "python",
+      "name": "Python: PRismatic",
+      "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/prismatic.py",
+      "cwd": "${workspaceFolder}",
+      "program": "/usr/local/bin/uv",
       "args": [
+        "run",
+        "main.py",
         "https://github.com/lastmile-ai/mcp-agent/pull/29"
       ],
       "console": "integratedTerminal",
