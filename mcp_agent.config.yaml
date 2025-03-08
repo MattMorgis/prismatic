@@ -2,7 +2,7 @@ execution_engine: asyncio
 logger:
   type: file
   level: debug
-  path: "logs/multi-code-reviewer.jsonl"
+  path: "logs/prismatic.jsonl"
 
 anthropic:
   default_model: "claude-3-7-sonnet-latest"
@@ -18,11 +18,6 @@ mcp:
     git:
       command: 'uvx'
       args: ['mcp-server-git']
-
-    # Fetch server for accessing web resources
-    fetch:
-      command: 'uvx'
-      args: ['mcp-server-fetch']
 
     # File system server for accessing local files
     file:
