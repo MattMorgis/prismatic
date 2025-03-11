@@ -22,13 +22,36 @@ Each reviewer utilizes the [GitHub](https://github.com/modelcontextprotocol/serv
 
 2. Create a `mcp_agent.secrets.yaml` file (using the .example file as a template) with your API keys.
 
+## Prerequisites
+
+- Docker
+- `mcp_agent.secrets.yaml` file in the project root directory
+
 ## Usage
 
-To review a GitHub pull request:
+### Build the Docker image
 
 ```bash
-uv run main.py https://github.com/username/repo/pull/123
+docker build -t prismatic .
 ```
+
+Note: The build will fail if `mcp_agent.secrets.yaml` is missing.
+
+### Run the code review
+
+```bash
+docker run prismatic <pr_url>
+```
+
+For example:
+```bash
+docker run prismatic https://github.com/owner/repo/pull/123
+```
+
+This will:
+1. Process the specified PR
+2. Generate a review report
+3. Print the report to console & save within the container.
 
 ## Configuration
 

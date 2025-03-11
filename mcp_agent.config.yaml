@@ -1,6 +1,6 @@
 execution_engine: asyncio
 logger:
-  type: file
+  type: console
   level: debug
   path: "logs/prismatic.jsonl"
 
