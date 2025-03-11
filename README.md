@@ -29,29 +29,45 @@ Each reviewer utilizes the [GitHub](https://github.com/modelcontextprotocol/serv
 
 ## Usage
 
-### Build the Docker image
+### Pull the Docker image
 
 ```bash
-docker build -t prismatic .
+docker pull ghcr.io/your-org/prismatic:latest
 ```
-
-Note: The build will fail if `mcp_agent.secrets.yaml` is missing.
 
 ### Run the code review
 
+The container requires two environment variables:
+- `ANTHROPIC_API_KEY`: Your Anthropic API key
+- `GITHUB_TOKEN`: Your GitHub Personal Access Token
+
 ```bash
-docker run prismatic <pr_url>
+docker run \
+  -e ANTHROPIC_API_KEY="your-anthropic-key" \
+  -e GITHUB_TOKEN="your-github-token" \
+  ghcr.io/mattmorgis/prismatic <pr_url>
+```
+
+You can also use environment variables from your shell:
+```bash
+docker run \
+  -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
+  -e GITHUB_TOKEN=$GITHUB_TOKEN \
+  ghcr.io/mattmorgis/prismatic <pr_url>
 ```
 
 For example:
 ```bash
-docker run prismatic https://github.com/owner/repo/pull/123
+docker run \
+  -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
+  -e GITHUB_TOKEN=$GITHUB_TOKEN \
+  ghcr.io/mattmorgis/prismatic https://github.com/owner/repo/pull/123
 ```
 
 This will:
 1. Process the specified PR
 2. Generate a review report
-3. Print the report to console & save within the container.
+3. Print the report to console
 
 ## Configuration
 

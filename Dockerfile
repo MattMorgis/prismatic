@@ -11,14 +11,14 @@ RUN apt-get update && \
 # Set working directory
 WORKDIR /app
 
-# Verify secrets file exists
-COPY mcp_agent.secrets.yaml ./
-
 # Copy project files
 COPY . .
 
+# Make entrypoint script executable
+RUN chmod +x docker-entrypoint.sh
+
 # Set the entrypoint
-ENTRYPOINT ["uv", "run", "main.py"]
+ENTRYPOINT ["./docker-entrypoint.sh"]
 
 # Default command (can be overridden)
 CMD ["--help"]
