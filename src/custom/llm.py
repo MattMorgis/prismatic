@@ -15,6 +15,11 @@ import functools
 from typing import List
 
 from anthropic import Anthropic
+from anthropic._exceptions import (
+    OverloadedError,
+    RateLimitError,
+    ServiceUnavailableError,
+)
 from anthropic.types import Message, MessageParam, ToolParam, ToolResultBlockParam
 from mcp.types import CallToolRequest, CallToolRequestParams
 from mcp_agent.workflows.llm.augmented_llm_anthropic import (
@@ -23,27 +28,10 @@ from mcp_agent.workflows.llm.augmented_llm_anthropic import (
 from mcp_agent.workflows.llm.augmented_llm_anthropic import RequestParams
 from tenacity import (
     retry,
-    retry_if_exception,
     retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
 )
-
-# Helper functions for rate limit handling
-
-
-def is_rate_limit_error(exception):
-    """Check if an exception is a rate limit error (HTTP 429).
-    This function identifies Anthropic API rate limit errors by looking for:
-    - 'RateLimitError' in the exception string
-    - '429' HTTP status code in the exception string
-    Args:
-        exception: The exception to check
-    Returns:
-        bool: True if it's a rate limit error, False otherwise
-    """
-    error_str = str(exception)
-    return "RateLimitError" in error_str or "429" in error_str
 
 
 def wrap_anthropic_api_with_retry_and_backoff(func):
@@ -68,8 +56,9 @@ def wrap_anthropic_api_with_retry_and_backoff(func):
     retry_config = dict(
         stop=stop_after_attempt(5),
         wait=wait_exponential(multiplier=15, min=30, max=180),
-        retry=retry_if_exception_type(Exception)
-        & retry_if_exception(is_rate_limit_error),
+        retry=retry_if_exception_type(
+            exception_types=[RateLimitError, ServiceUnavailableError, OverloadedError]
+        ),
         before_sleep=lambda retry_state: print(
             f"Rate limit hit: {retry_state.outcome.exception()}. "
             f"Retrying in {retry_state.next_action.sleep:.2f} seconds "
