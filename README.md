@@ -16,59 +16,6 @@ Each reviewer provides specialized feedback, which is then aggregated into a com
 
 Each reviewer utilizes the [GitHub](https://github.com/modelcontextprotocol/servers/tree/main/src/github) and [FileSystem](https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem) MCP Servers to access PR metadata, diff information, and other reviewers' comments. This integration allows for a comprehensive analysis by exploring the local repository to provide deeper context for the changes.
 
-## Setup
-
-1. Install [uv](https://github.com/astral-sh/uv) if you haven't already
-
-2. Create a `mcp_agent.secrets.yaml` file (using the .example file as a template) with your API keys.
-
-## Prerequisites
-
-- Docker
-- `mcp_agent.secrets.yaml` file in the project root directory
-
-## Usage
-
-### Pull the Docker image
-
-```bash
-docker pull ghcr.io/your-org/prismatic:latest
-```
-
-### Run the code review
-
-The container requires two environment variables:
-- `ANTHROPIC_API_KEY`: Your Anthropic API key
-- `GITHUB_TOKEN`: Your GitHub Personal Access Token
-
-```bash
-docker run \
-  -e ANTHROPIC_API_KEY="your-anthropic-key" \
-  -e GITHUB_TOKEN="your-github-token" \
-  ghcr.io/mattmorgis/prismatic <pr_url>
-```
-
-You can also use environment variables from your shell:
-```bash
-docker run \
-  -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
-  -e GITHUB_TOKEN=$GITHUB_TOKEN \
-  ghcr.io/mattmorgis/prismatic <pr_url>
-```
-
-For example:
-```bash
-docker run \
-  -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
-  -e GITHUB_TOKEN=$GITHUB_TOKEN \
-  ghcr.io/mattmorgis/prismatic https://github.com/owner/repo/pull/123
-```
-
-This will:
-1. Process the specified PR
-2. Generate a review report
-3. Print the report to console
-
 ## Configuration
 
 ### GitHub Access Token
@@ -82,8 +29,38 @@ You need an Anthropic API Key
 * Go to [Anthropic API Console](https://console.anthropic.com/settings/keys)
 * Copy your API key
 
-## Requirements
 
-- Python 3.11+
-- Anthropic API key
-- GitHub access for PR details
+## Usage
+
+### Pull the Docker image
+
+```bash
+docker pull ghcr.io/mattmorgis/prismatic:latest
+```
+
+### Run the code review
+
+The container requires two environment variables:
+- `ANTHROPIC_API_KEY`: Your Anthropic API key
+- `GITHUB_TOKEN`: Your GitHub Personal Access Token
+
+```bash
+docker run \
+  -e ANTHROPIC_API_KEY="your-anthropic-key" \
+  -e GITHUB_TOKEN="your-github-token" \
+  ghcr.io/mattmorgis/prismatic https://github.com/owner/repo/pull/123
+```
+
+You can also use environment variables from your shell:
+```bash
+docker run \
+  -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
+  -e GITHUB_TOKEN=$GITHUB_TOKEN \
+  ghcr.io/mattmorgis/prismatic https://github.com/owner/repo/pull/123
+```
+
+This will:
+1. Process the specified PR
+2. Generate a review report
+3. Print the report to console
+
