@@ -12,6 +12,7 @@
 
 import asyncio
 import functools
+import logging
 from typing import List
 
 from anthropic import Anthropic
@@ -38,17 +39,19 @@ def wrap_anthropic_api_with_retry_and_backoff(func):
     """Decorator to add retry and backoff for Anthropic API rate limit errors.
     This decorator wraps API calls to Anthropic's services with an exponential
     backoff retry mechanism specifically for rate limit errors (HTTP 429).
+
     Features:
-    - Works with both synchronous and asynchronous functions
-    - Retries up to 5 times on rate limit errors only
-    - Implements exponential backoff starting at 30s and increasing to max 180s
-    - Adds jitter to prevent synchronized retries
+    - Retries up to 5 times with exponential backoff
+    - Only retries for rate limit errors (HTTP 429)
     - Logs each retry attempt with details
     Args:
         func: The function to wrap (can be sync or async)
     Returns:
         A wrapped function that will retry on rate limit errors
     """
+    # Get or create a logger
+    logger = logging.getLogger(__name__)
+
     # Configure the retry behavior specifically for rate limit errors
     # - retry up to 5 times
     # - wait exponentially: ~30s, ~60s, ~120s, ~180s, ~180s (plus jitter)
@@ -59,7 +62,7 @@ def wrap_anthropic_api_with_retry_and_backoff(func):
         retry=retry_if_exception_type(
             exception_types=[RateLimitError, ServiceUnavailableError, OverloadedError]
         ),
-        before_sleep=lambda retry_state: print(
+        before_sleep=lambda retry_state: logger.warning(
             f"Rate limit hit: {retry_state.outcome.exception()}. "
             f"Retrying in {retry_state.next_action.sleep:.2f} seconds "
             f"(attempt {retry_state.attempt_number}/5)"
