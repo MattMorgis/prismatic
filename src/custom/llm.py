@@ -10,15 +10,80 @@
 # For the full license information, please view the LICENSE
 # file that was distributed with the original source code.
 
+import asyncio
+import functools
+import logging
 from typing import List
 
 from anthropic import Anthropic
+from anthropic._exceptions import (
+    OverloadedError,
+    RateLimitError,
+    ServiceUnavailableError,
+)
 from anthropic.types import Message, MessageParam, ToolParam, ToolResultBlockParam
 from mcp.types import CallToolRequest, CallToolRequestParams
 from mcp_agent.workflows.llm.augmented_llm_anthropic import (
     AnthropicAugmentedLLM as BaseAnthropicAugmentedLLM,
 )
 from mcp_agent.workflows.llm.augmented_llm_anthropic import RequestParams
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
+
+
+def wrap_anthropic_api_with_retry_and_backoff(func):
+    """Decorator to add retry and backoff for Anthropic API rate limit errors.
+    This decorator wraps API calls to Anthropic's services with an exponential
+    backoff retry mechanism specifically for rate limit errors (HTTP 429).
+
+    Features:
+    - Retries up to 5 times with exponential backoff
+    - Only retries for rate limit errors (HTTP 429)
+    - Logs each retry attempt with details
+    Args:
+        func: The function to wrap (can be sync or async)
+    Returns:
+        A wrapped function that will retry on rate limit errors
+    """
+    # Get or create a logger
+    logger = logging.getLogger(__name__)
+
+    # Configure the retry behavior specifically for rate limit errors
+    # - retry up to 5 times
+    # - wait exponentially: ~30s, ~60s, ~120s, ~180s, ~180s (plus jitter)
+    # - only retry for rate limit errors
+    retry_config = dict(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=15, min=30, max=180),
+        retry=retry_if_exception_type(
+            exception_types=[RateLimitError, ServiceUnavailableError, OverloadedError]
+        ),
+        before_sleep=lambda retry_state: logger.warning(
+            f"Rate limit hit: {retry_state.outcome.exception()}. "
+            f"Retrying in {retry_state.next_action.sleep:.2f} seconds "
+            f"(attempt {retry_state.attempt_number}/5)"
+        ),
+    )
+
+    # Check if the function is a coroutine function (async)
+    if asyncio.iscoroutinefunction(func):
+        # For async functions, we need to use the async retry decorator
+        from tenacity import AsyncRetrying
+
+        @functools.wraps(func)
+        async def async_wrapper(*args, **kwargs):
+            async for attempt in AsyncRetrying(**retry_config):
+                with attempt:
+                    return await func(*args, **kwargs)
+
+        return async_wrapper
+    else:
+        # For regular functions, use the standard retry decorator
+        return retry(**retry_config)(func)
 
 
 class CustomAnthropicAugmentedLLM(BaseAnthropicAugmentedLLM):
@@ -94,8 +159,12 @@ class CustomAnthropicAugmentedLLM(BaseAnthropicAugmentedLLM):
             self.logger.debug(f"{arguments}")
             self._log_chat_progress(chat_turn=(len(messages) + 1) // 2, model=model)
 
+            api_call_with_retry = wrap_anthropic_api_with_retry_and_backoff(
+                anthropic.messages.create
+            )
+
             executor_result = await self.executor.execute(
-                anthropic.messages.create, **arguments
+                api_call_with_retry, **arguments
             )
 
             response = executor_result[0]
