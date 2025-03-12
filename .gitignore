@@ -185,3 +185,6 @@ reviews/**/*.md
 
 # macOS
 .DS_Store
+
+# node
+node_modules/
