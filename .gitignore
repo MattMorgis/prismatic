@@ -182,3 +182,6 @@ reviews/**/*.md
 
 .uv/
 .venv/
+
+# macOS
+.DS_Store
