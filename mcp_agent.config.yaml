@@ -12,7 +12,7 @@ mcp:
     # GitHub MCP server
     github:
       command: 'npx'
-      args: ['-y', '@modelcontextprotocol/server-github']
+      args: ['-y', './mcp/github']
 
     # Git MCP server (optional - if needed for deeper repo analysis)
     git:
