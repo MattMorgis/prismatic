@@ -22,7 +22,6 @@ from anthropic._exceptions import (
     ServiceUnavailableError,
 )
 from anthropic.types import Message, MessageParam, ToolParam, ToolResultBlockParam
-from mcp.types import CallToolRequest, CallToolRequestParams
 from mcp_agent.workflows.llm.augmented_llm_anthropic import (
     AnthropicAugmentedLLM as BaseAnthropicAugmentedLLM,
 )
@@ -33,6 +32,8 @@ from tenacity import (
     stop_after_attempt,
     wait_exponential,
 )
+
+from mcp.types import CallToolRequest, CallToolRequestParams
 
 
 def wrap_anthropic_api_with_retry_and_backoff(func):
@@ -60,7 +61,9 @@ def wrap_anthropic_api_with_retry_and_backoff(func):
         stop=stop_after_attempt(5),
         wait=wait_exponential(multiplier=15, min=30, max=180),
         retry=retry_if_exception_type(
-            exception_types=[RateLimitError, ServiceUnavailableError, OverloadedError]
+            exception_types=tuple(
+                [RateLimitError, ServiceUnavailableError, OverloadedError]
+            )
         ),
         before_sleep=lambda retry_state: logger.warning(
             f"Rate limit hit: {retry_state.outcome.exception()}. "
