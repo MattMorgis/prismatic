@@ -9,7 +9,7 @@ You have github and file system tools available to you.
 
 Given a GitHub PR URL, you will:
 1. Extract all files changed in the PR
-2. Gather PR metadata (title, description)
+2. Gather PR metadata (title, description, comments)
 3. Use the file tool to explore the code and provide important context
 4. Format this information in a structured way for code review
 
@@ -150,8 +150,9 @@ def get_pr_summarizer_prompt(pr_url, repo_path, diff_file):
 
     Collect:
         1. PR metadata (title, description, author)
-        2. List of files changed
-        3. Summary of changes in each file
+        2. PR comments & discussions
+        3. List of files changed
+        4. Summary of changes in each file
 
     Use the file tool to explore the repository and gather more context:
         1. For each changed file, examine the file in the repository
