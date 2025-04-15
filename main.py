@@ -7,9 +7,7 @@ from src.report import ReportGenerator
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="PRismatic code reviewer"
-    )
+    parser = argparse.ArgumentParser(description="PRismatic code reviewer")
     parser.add_argument("pr_url", help="GitHub Pull Request URL to review")
     args = parser.parse_args()
 
@@ -27,7 +25,7 @@ def main():
         report_path = report_gen.generate_report(args.pr_url, review_result)
         print(f"\nReport saved to: {report_path}")
     else:
-        print("PR is not open, skipping review")
+        print("PR review did not complete successfully")
     print(f"\nReview completed in {end_time - start_time:.2f} seconds")
 
 
