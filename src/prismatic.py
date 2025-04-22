@@ -83,7 +83,6 @@ async def run_code_review(pr_url):
                 full_response = parse_llm_full_response(responses)
                 pr_data = parse_llm_final_response(responses)
                 logger.info(f"Successfully summarized PR: {full_response}")
-                summary_cost = calculate_token_usage(responses, logger)
 
                 # Create specialized reviewer agents
                 security_reviewer = Agent(
@@ -174,68 +173,3 @@ def parse_llm_final_response(responses):
                 final_text = content.text
 
     return final_text
-
-
-def calculate_token_usage(responses, logger):
-    total_input_tokens = 0
-    total_output_tokens = 0
-    total_cache_creation_tokens = 0
-    total_cache_read_tokens = 0
-
-    for response in responses:
-        # Extract token usage information if available
-        if hasattr(response, "usage"):
-            usage = response.usage
-            input_tokens = usage.input_tokens if hasattr(usage, "input_tokens") else 0
-            output_tokens = (
-                usage.output_tokens if hasattr(usage, "output_tokens") else 0
-            )
-
-            # Extract cache-related token information
-            cache_creation_tokens = (
-                usage.cache_creation_input_tokens
-                if hasattr(usage, "cache_creation_input_tokens")
-                else 0
-            )
-            cache_read_tokens = (
-                usage.cache_read_input_tokens
-                if hasattr(usage, "cache_read_input_tokens")
-                else 0
-            )
-
-            total_input_tokens += input_tokens
-            total_output_tokens += output_tokens
-            total_cache_creation_tokens += cache_creation_tokens
-            total_cache_read_tokens += cache_read_tokens
-
-            # Log token usage including cache metrics
-            logger.info(
-                f"Token usage - Input: {input_tokens}, Output: {output_tokens}, "
-                f"Cache Creation: {cache_creation_tokens}, Cache Read: {cache_read_tokens}"
-            )
-
-    # Log total token usage including cache metrics
-    logger.info(
-        f"Total token usage - Input: {total_input_tokens}, Output: {total_output_tokens}, "
-        f"Cache Creation: {total_cache_creation_tokens}, Cache Read: {total_cache_read_tokens}"
-    )
-
-    # Calculate approximate cost with updated pricing and cache metrics
-    # Prices: $3 per million input tokens, $15 per million output tokens
-    # Cache pricing: $3.75 per million cache write tokens, $0.30 per million cache read tokens
-    input_cost = (total_input_tokens / 1_000_000) * 3.0
-    output_cost = (total_output_tokens / 1_000_000) * 15.0
-    cache_creation_cost = (total_cache_creation_tokens / 1_000_000) * 3.75
-    cache_read_cost = (total_cache_read_tokens / 1_000_000) * 0.30
-
-    total_cost = input_cost + output_cost + cache_creation_cost + cache_read_cost
-
-    logger.info(
-        f"Estimated cost: ${total_cost:.6f} ("
-        f"Input: ${input_cost:.6f}, "
-        f"Output: ${output_cost:.6f}, "
-        f"Cache Creation: ${cache_creation_cost:.6f}, "
-        f"Cache Read: ${cache_read_cost:.6f})"
-    )
-
-    return total_cost
