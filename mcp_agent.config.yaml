@@ -1,6 +1,6 @@
 execution_engine: asyncio
 logger:
-  transport: [file]
+  transports: [file]
   level: debug
   path_settings:
     path_pattern: "logs/mcp-agent-{unique_id}.jsonl"
