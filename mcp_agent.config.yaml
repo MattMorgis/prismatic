@@ -1,8 +1,11 @@
 execution_engine: asyncio
 logger:
-  type: console
+  transport: [file]
   level: debug
-  path: "logs/prismatic.jsonl"
+  path_settings:
+    path_pattern: "logs/mcp-agent-{unique_id}.jsonl"
+    unique_id: "timestamp" # Options: "timestamp" or "session_id"
+    timestamp_format: "%Y%m%d_%H%M%S"
 
 anthropic:
   default_model: "claude-3-7-sonnet-latest"
@@ -11,19 +14,15 @@ mcp:
   servers:
     # GitHub MCP server
     github:
-      command: 'npx'
-      args: ['-y', '@modelcontextprotocol/server-github']
+      command: "npx"
+      args: ["-y", "@modelcontextprotocol/server-github"]
 
     # Git MCP server (optional - if needed for deeper repo analysis)
     git:
-      command: 'uvx'
-      args: ['mcp-server-git']
+      command: "uvx"
+      args: ["mcp-server-git"]
 
     # File system server for accessing local files
     file:
-      command: 'npx'
-      args: [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "/tmp"
-      ]
+      command: "npx"
+      args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
