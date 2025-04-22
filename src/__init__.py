@@ -1,3 +1,0 @@
-"""
-multi-code-reviewer package
-"""
